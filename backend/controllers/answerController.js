@@ -32,8 +32,8 @@ const getAnswers = async (req, res) => {
 const createAnswer = async (req, res) => {
   try {
     const { questionId } = req.params;
-    const { body }       = req.body;
-    const user_id        = req.user.id;
+    const { body } = req.body;
+    const user_id = req.user.id;
 
     if (!body || body.trim().length < 10) {
       return res.status(400).json({
@@ -68,11 +68,30 @@ const createAnswer = async (req, res) => {
       'UPDATE users SET reputation = reputation + 2 WHERE id = ?',
       [user_id]
     );
-
+    // ── Send real-time notification to question owner ──
+    if (qRows[0].user_id !== user_id) {
+      // Save to DB
+      await db.query(
+        `INSERT INTO notifications (user_id, type, message, link)
+     VALUES (?, 'answer', ?, ?)`,
+        [
+          qRows[0].user_id,
+          `${req.user.name} answered your question`,
+          `/question/${questionId}`
+        ]
+      );
+      // Send real-time via socket
+      const sendNotification = req.app.get('sendNotification');
+      sendNotification(qRows[0].user_id, {
+        type: 'answer',
+        message: `${req.user.name} answered your question`,
+        link: `/question/${questionId}`
+      });
+    }
     res.status(201).json({
-      success:  true,
+      success: true,
       answerId: result.insertId,
-      message:  'Answer posted!'
+      message: 'Answer posted!'
     });
 
   } catch (err) {
@@ -85,7 +104,7 @@ const createAnswer = async (req, res) => {
 // ════════════════════════════════════════
 const acceptAnswer = async (req, res) => {
   try {
-    const { id }  = req.params;
+    const { id } = req.params;
     const user_id = req.user.id;
 
     // Get answer + question
@@ -138,7 +157,7 @@ const acceptAnswer = async (req, res) => {
 // ════════════════════════════════════════
 const deleteAnswer = async (req, res) => {
   try {
-    const { id }  = req.params;
+    const { id } = req.params;
     const user_id = req.user.id;
 
     const [rows] = await db.query('SELECT * FROM answers WHERE id = ?', [id]);

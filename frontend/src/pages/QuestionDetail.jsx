@@ -3,19 +3,22 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
 import Navbar from '../components/Navbar';
+import VoteButtons from '../components/VoteButtons';
 import '../styles/QuestionDetail.css';
 
-export default function QuestionDetail() {
-  const { id }       = useParams();
-  const { user }     = useAuth();
-  const navigate     = useNavigate();
 
-  const [question,  setQuestion]  = useState(null);
-  const [answers,   setAnswers]   = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [answerBody,setAnswerBody]= useState('');
-  const [submitting,setSubmitting]= useState(false);
-  const [error,     setError]     = useState('');
+export default function QuestionDetail() {
+  const { id } = useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [question, setQuestion] = useState(null);
+  const [answers, setAnswers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [answerBody, setAnswerBody] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  
 
   const fetchQuestion = async () => {
     try {
@@ -82,21 +85,22 @@ export default function QuestionDetail() {
   };
 
   const timeAgo = (dateStr) => {
-    const diff  = Date.now() - new Date(dateStr).getTime();
-    const mins  = Math.floor(diff / 60000);
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
-    const days  = Math.floor(diff / 86400000);
-    if (mins  < 60) return `${mins}m ago`;
+    const days = Math.floor(diff / 86400000);
+    if (mins < 60) return `${mins}m ago`;
     if (hours < 24) return `${hours}h ago`;
     return `${days}d ago`;
   };
+  
 
   if (loading) return (
     <div className="qd-root">
       <Navbar />
       <div className="qd-loading">
         <div className="qd-skeleton title" />
-        <div className="qd-skeleton body"  />
+        <div className="qd-skeleton body" />
         <div className="qd-skeleton body short" />
       </div>
     </div>
@@ -109,63 +113,77 @@ export default function QuestionDetail() {
 
         {/* ── QUESTION ── */}
         <div className="qd-question">
+          <div className="qd-q-layout">
 
-          {/* Header */}
-          <div className="qd-q-header">
-            {question.is_solved && (
-              <span className="qd-solved-badge">✅ Solved</span>
-            )}
-            <h1 className="qd-q-title">{question.title}</h1>
-            <div className="qd-q-meta">
-              <span>Asked {timeAgo(question.created_at)}</span>
-              <span>·</span>
-              <span>{question.view_count} views</span>
-              <span>·</span>
-              <span>{question.answer_count} answers</span>
-            </div>
-          </div>
+            {/* Vote buttons for question */}
+            <VoteButtons
+              targetType="question"
+              targetId={question.id}
+              initialScore={question.vote_score}
+              onVote={(newScore) =>
+                setQuestion(prev => ({ ...prev, vote_score: newScore }))
+              }
+            />
 
-          {/* Body */}
-          <div className="qd-q-body">
-            {question.body}
-          </div>
-
-          {/* Tags + Author */}
-          <div className="qd-q-footer">
-            <div className="qd-tags">
-              {question.tags?.map(tag => (
-                <span key={tag} className="qd-tag">{tag}</span>
-              ))}
-            </div>
-            <div className="qd-author-card">
-              <div className="qd-author-label">Asked by</div>
-              <div className="qd-author-info">
-                <div className="qd-avatar">
-                  {question.user_name?.charAt(0).toUpperCase()}
+            <div className="qd-q-main">
+              {/* Header */}
+              <div className="qd-q-header">
+                {question.is_solved && (
+                  <span className="qd-solved-badge">✅ Solved</span>
+                )}
+                <h1 className="qd-q-title">{question.title}</h1>
+                <div className="qd-q-meta">
+                  <span>Asked {timeAgo(question.created_at)}</span>
+                  <span>·</span>
+                  <span>{question.view_count} views</span>
+                  <span>·</span>
+                  <span>{question.answer_count} answers</span>
                 </div>
-                <div>
-                  <div className="qd-author-name">{question.user_name}</div>
-                  <div className="qd-author-rep">
-                    ⭐ {question.reputation} reputation
+              </div>
+
+              {/* Body */}
+              <div className="qd-q-body">
+                {question.body}
+              </div>
+
+              {/* Tags + Author */}
+              <div className="qd-q-footer">
+                <div className="qd-tags">
+                  {question.tags?.map(tag => (
+                    <span key={tag} className="qd-tag">{tag}</span>
+                  ))}
+                </div>
+                <div className="qd-author-card">
+                  <div className="qd-author-label">Asked by</div>
+                  <div className="qd-author-info">
+                    <div className="qd-avatar">
+                      {question.user_name?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="qd-author-name">{question.user_name}</div>
+                      <div className="qd-author-rep">
+                        ⭐ {question.reputation} reputation
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* Delete question — owner only */}
+              {user?.id === question.user_id && (
+                <button
+                  className="qd-delete-btn"
+                  onClick={async () => {
+                    if (!window.confirm('Delete this question?')) return;
+                    await API.delete(`/questions/${id}`);
+                    navigate('/home');
+                  }}
+                >
+                  🗑 Delete Question
+                </button>
+              )}
             </div>
           </div>
-
-          {/* Delete question (owner only) */}
-          {user?.id === question.user_id && (
-            <button
-              className="qd-delete-btn"
-              onClick={async () => {
-                if (!window.confirm('Delete this question?')) return;
-                await API.delete(`/questions/${id}`);
-                navigate('/home');
-              }}
-            >
-              🗑 Delete Question
-            </button>
-          )}
         </div>
 
         {/* ── ANSWERS ── */}
@@ -185,46 +203,62 @@ export default function QuestionDetail() {
                 key={answer.id}
                 className={`qd-answer ${answer.is_accepted ? 'accepted' : ''}`}
               >
-                {answer.is_accepted && (
-                  <div className="qd-accepted-badge">✅ Accepted Answer</div>
-                )}
+                <div className="qd-answer-layout">
 
-                <div className="qd-answer-body">{answer.body}</div>
+                  {/* Vote buttons for answer */}
+                  <VoteButtons
+                    targetType="answer"
+                    targetId={answer.id}
+                    initialScore={answer.vote_score}
+                    onVote={(newScore) =>
+                      setAnswers(prev => prev.map(a =>
+                        a.id === answer.id ? { ...a, vote_score: newScore } : a
+                      ))
+                    }
+                  />
 
-                <div className="qd-answer-footer">
-                  <div className="qd-answer-meta">
-                    <div className="qd-avatar sm">
-                      {answer.user_name?.charAt(0).toUpperCase()}
+                  <div className="qd-answer-content">
+                    {answer.is_accepted && (
+                      <div className="qd-accepted-badge">✅ Accepted Answer</div>
+                    )}
+
+                    <div className="qd-answer-body">{answer.body}</div>
+
+                    <div className="qd-answer-footer">
+                      <div className="qd-answer-meta">
+                        <div className="qd-avatar sm">
+                          {answer.user_name?.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="qd-answer-author">{answer.user_name}</span>
+                        <span className="qd-answer-time">
+                          {timeAgo(answer.created_at)}
+                        </span>
+                        <span className="qd-answer-rep">
+                          ⭐ {answer.reputation}
+                        </span>
+                      </div>
+
+                      <div className="qd-answer-actions">
+                        {/* Accept button — only question owner */}
+                        {user?.id === question.user_id && !answer.is_accepted && (
+                          <button
+                            className="qd-accept-btn"
+                            onClick={() => handleAccept(answer.id)}
+                          >
+                            ✓ Accept
+                          </button>
+                        )}
+                        {/* Delete button — answer owner */}
+                        {user?.id === answer.user_id && (
+                          <button
+                            className="qd-delete-ans-btn"
+                            onClick={() => handleDeleteAnswer(answer.id)}
+                          >
+                            🗑
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <span className="qd-answer-author">{answer.user_name}</span>
-                    <span className="qd-answer-time">
-                      {timeAgo(answer.created_at)}
-                    </span>
-                    <span className="qd-answer-rep">
-                      ⭐ {answer.reputation}
-                    </span>
-                  </div>
-
-                  <div className="qd-answer-actions">
-                    {/* Accept button — only question owner */}
-                    {user?.id === question.user_id &&
-                     !answer.is_accepted && (
-                      <button
-                        className="qd-accept-btn"
-                        onClick={() => handleAccept(answer.id)}
-                      >
-                        ✓ Accept
-                      </button>
-                    )}
-                    {/* Delete button — answer owner */}
-                    {user?.id === answer.user_id && (
-                      <button
-                        className="qd-delete-ans-btn"
-                        onClick={() => handleDeleteAnswer(answer.id)}
-                      >
-                        🗑
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>

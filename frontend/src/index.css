@@ -1,2 +1,33 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { overflow-x: hidden; }
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap');
+
+:root {
+  --bg:        #DAE0E6;
+  --bg-card:   #FFFFFF;
+  --bg-input:  #F6F7F8;
+  --bg-hover:  #F6F7F8;
+  --border:    #EDEFF1;
+  --orange:    #FF4500;
+  --orange-dim:#E03D00;
+  --orange-bg: rgba(255,69,0,0.08);
+  --blue:      #0079D3;
+  --blue-bg:   rgba(0,121,211,0.08);
+  --green:     #46D160;
+  --text-1:    #1C1C1C;
+  --text-2:    #878A8C;
+  --text-3:    #EDEFF1;
+  --upvote:    #FF4500;
+  --downvote:  #7193FF;
+  --radius:    4px;
+  --radius-lg: 8px;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text-1);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
