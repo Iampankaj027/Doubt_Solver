@@ -1,14 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
 import Navbar from '../components/Navbar';
 import '../styles/Profile.css';
 
+const API_BASE = 'http://localhost:5000';
+
 export default function Profile() {
   const { id }           = useParams();
   const { user, login, token } = useAuth();
   const navigate         = useNavigate();
+  const fileInputRef     = useRef(null);
 
   const profileId = id || user?.id;
   const isOwner   = user?.id === Number(profileId);
@@ -22,6 +25,7 @@ export default function Profile() {
   const [editing,   setEditing]   = useState(false);
   const [saving,    setSaving]    = useState(false);
   const [saveMsg,   setSaveMsg]   = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const [editName,   setEditName]   = useState('');
   const [editBranch, setEditBranch] = useState('');
@@ -70,6 +74,53 @@ export default function Profile() {
     }
   };
 
+  const handleAvatarClick = () => {
+    if (isOwner && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      setSaveMsg('Only JPEG, PNG, GIF, or WebP images allowed');
+      setTimeout(() => setSaveMsg(''), 3000);
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setSaveMsg('Image must be under 5MB');
+      setTimeout(() => setSaveMsg(''), 3000);
+      return;
+    }
+
+    setAvatarUploading(true);
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      const { data } = await API.post('/auth/profile/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setProfile(data.user);
+      login(data.user, token, true);
+      setSaveMsg('Avatar updated!');
+      setTimeout(() => setSaveMsg(''), 3000);
+    } catch (err) {
+      setSaveMsg(err.response?.data?.message || 'Failed to upload avatar');
+      setTimeout(() => setSaveMsg(''), 3000);
+    } finally {
+      setAvatarUploading(false);
+      // Reset file input so same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const timeAgo = (dateStr) => {
     const diff  = Date.now() - new Date(dateStr).getTime();
     const days  = Math.floor(diff / 86400000);
@@ -78,6 +129,10 @@ export default function Profile() {
     if (days > 0)   return `${days}d ago`;
     return 'Today';
   };
+
+  const avatarSrc = profile?.avatar_url
+    ? `${API_BASE}${profile.avatar_url}`
+    : null;
 
   if (loading) return (
     <div className="prof-root">
@@ -99,9 +154,45 @@ export default function Profile() {
 
           {/* Avatar */}
           <div className="prof-card">
-            <div className="prof-avatar">
-              {profile?.name?.charAt(0).toUpperCase()}
+            <div
+              className={`prof-avatar ${isOwner ? 'editable' : ''} ${avatarUploading ? 'uploading' : ''}`}
+              onClick={handleAvatarClick}
+              title={isOwner ? 'Click to change avatar' : ''}
+            >
+              {avatarSrc ? (
+                <img
+                  src={avatarSrc}
+                  alt={profile?.name}
+                  className="prof-avatar-img"
+                />
+              ) : (
+                profile?.name?.charAt(0).toUpperCase()
+              )}
+
+              {/* Upload overlay — owner only */}
+              {isOwner && (
+                <div className="prof-avatar-overlay">
+                  {avatarUploading ? (
+                    <div className="prof-avatar-spinner" />
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                      <circle cx="12" cy="13" r="4" />
+                    </svg>
+                  )}
+                </div>
+              )}
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                onChange={handleAvatarUpload}
+                style={{ display: 'none' }}
+              />
             </div>
+
             <div className="prof-name">{profile?.name}</div>
             <div className="prof-email">{profile?.email}</div>
             {profile?.branch && (
@@ -110,6 +201,13 @@ export default function Profile() {
             <div className="prof-joined">
               Joined {new Date(profile?.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </div>
+
+            {/* Avatar upload message */}
+            {saveMsg && (
+              <div className={`prof-save-msg ${saveMsg.includes('!') ? 'success' : 'error'}`} style={{ marginTop: 12 }}>
+                {saveMsg}
+              </div>
+            )}
           </div>
 
           {/* Stats */}
@@ -189,11 +287,6 @@ export default function Profile() {
                       {saving ? 'Saving...' : 'Save'}
                     </button>
                   </div>
-                  {saveMsg && (
-                    <div className={`prof-save-msg ${saveMsg.includes('!') ? 'success' : 'error'}`}>
-                      {saveMsg}
-                    </div>
-                  )}
                 </div>
               )}
             </div>

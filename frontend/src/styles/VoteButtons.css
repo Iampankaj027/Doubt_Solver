@@ -1,28 +1,53 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+/* ═══════════════════════════════════════════
+   Vote Buttons — Warm Theme
+   ═══════════════════════════════════════════ */
 
 .vote-wrap {
-  display: flex; flex-direction: column;
-  align-items: center; gap: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   flex-shrink: 0;
 }
 
 .vote-btn {
-  width: 32px; height: 32px; border-radius: 2px;
-  background: none; border: none;
-  color: #878A8C;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 0.15s;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
 }
-.vote-btn:hover:not(:disabled) { background: #F6F7F8; color: #FF4500; }
-.vote-btn.up.active  { color: #FF4500; }
-.vote-btn.down.active { color: #7193FF; }
-.vote-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.vote-btn:hover:not(:disabled) {
+  background: var(--bg-glass-hover);
+  color: var(--accent);
+}
+.vote-btn.up.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.vote-btn.down.active {
+  color: var(--info);
+  background: var(--info-soft);
+}
+.vote-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
 
 .vote-score {
-  font-family: 'IBM Plex Sans', sans-serif;
-  font-size: 14px; font-weight: 700;
-  color: #1C1C1C; min-width: 28px;
-  text-align: center; line-height: 1;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  min-width: 28px;
+  text-align: center;
+  line-height: 1;
 }
-.vote-score.positive { color: #FF4500; }
-.vote-score.negative { color: #7193FF; }
+.vote-score.positive { color: var(--accent); }
+.vote-score.negative { color: var(--info); }

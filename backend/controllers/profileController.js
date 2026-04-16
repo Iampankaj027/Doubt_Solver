@@ -1,4 +1,6 @@
-const db = require('../config/db');
+const db   = require('../config/db');
+const path = require('path');
+const fs   = require('fs');
 
 // ════════════════════════════════════════
 // GET /api/auth/profile/:id
@@ -100,4 +102,43 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { getProfile, updateProfile };
+// ════════════════════════════════════════
+// POST /api/auth/profile/avatar
+// ════════════════════════════════════════
+const uploadAvatar = async (req, res) => {
+  try {
+    const user_id = req.user.id;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    // Delete old avatar file if it exists
+    const [oldUser] = await db.query('SELECT avatar_url FROM users WHERE id = ?', [user_id]);
+    if (oldUser[0]?.avatar_url) {
+      const oldPath = path.join(__dirname, '..', oldUser[0].avatar_url.replace(/^\//, ''));
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+    }
+
+    // Build the URL path for the avatar
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+    // Update user's avatar_url in DB
+    await db.query('UPDATE users SET avatar_url = ? WHERE id = ?', [avatarUrl, user_id]);
+
+    // Return updated user
+    const [rows] = await db.query(
+      'SELECT id, name, email, branch, year, reputation, role, avatar_url FROM users WHERE id = ?',
+      [user_id]
+    );
+
+    res.json({ success: true, user: rows[0], message: 'Avatar updated!' });
+
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { getProfile, updateProfile, uploadAvatar };

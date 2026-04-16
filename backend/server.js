@@ -1,6 +1,7 @@
 const express  = require('express');
 const cors     = require('cors');
 const http     = require('http');
+const path     = require('path');
 const { Server } = require('socket.io');
 require('dotenv').config();
 
@@ -23,6 +24,9 @@ app.set('io', io);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ── Serve uploaded files (avatars, etc.) ──
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Health Check ────────────────────────
 app.get('/health', async (req, res) => {
